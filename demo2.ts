@@ -17,8 +17,8 @@ console.log(c)
 /**
  * enum 枚举类型
  */
-enum season{'春天' = 'spring', '夏天' = 'summer', '秋天' = 'autumn', '冬天' = 'winter'}
-console.log('春天')
+// enum season{'春天' = 'spring', '夏天' = 'summer', '秋天' = 'autumn', '冬天' = 'winter'}
+// console.log('春天')
 /**
  * any 类型
  */
