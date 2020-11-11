@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>index</title>
+    <style>
+        .input1 {
+            width: 300px;
+        }
+
+        .input2 {
+            width: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        请求：<input class="input1 requestInput1" />
+    </div>
+    <div>
+        请求：<input class="input1 requestInput2" />
+    </div>
+    <div>
+        请求：<input class="input1 requestInput3" />
+    </div>
+    <div class="content">
+
+    </div>
+    <button class="addBtn">+</button>
+    <div>
+        <p>重复：<input class="input2 countInput" /></p>
+        <p>间隔：<input class="input2 intervalInput" />s</p>
+    </div>
+    <button class="startBtn">开始</button>
+    <script>
+        if (!localStorage.getItem('requestUrl1')) {
+            localStorage.setItem('requestUrl1', 'http://test-h1-eu-api.arnoo.com/commons/ping');
+        }
+        if (!localStorage.getItem('requestUrl2')) {
+            localStorage.setItem('requestUrl2', 'https://test-h1-eu-api.arnoo.com/commons/ping');
+        }
+        if (!localStorage.getItem('requestUrl3')) {
+            localStorage.setItem('requestUrl3', 'https://test-eu-api.arnoo.com/v3/commons/ping');
+        }
+        if (!localStorage.getItem('count')) {
+            localStorage.setItem('count', '3');
+        }
+        if (!localStorage.getItem('interval')) {
+            localStorage.setItem('interval', '2');
+        }
+        if (!localStorage.getItem('addUrlContent')) {
+            localStorage.setItem('addUrlContent', JSON.stringify([]));
+        }
+
+        if (!localStorage.getItem('index')) {
+            localStorage.setItem('index', JSON.stringify(0));
+        }
+
+        var content = document.getElementsByClassName('content')[0];
+        var addUrlContent = JSON.parse(localStorage.getItem('addUrlContent'));
+
+        var requestInput1 = document.getElementsByClassName('requestInput1')[0];
+        var requestInput2 = document.getElementsByClassName('requestInput2')[0];
+        var requestInput3 = document.getElementsByClassName('requestInput3')[0];
+
+        var countInput = document.getElementsByClassName('countInput')[0];
+        var intervalInput = document.getElementsByClassName('intervalInput')[0];
+
+        var startBtn = document.getElementsByClassName('startBtn')[0];
+        var addBtn = document.getElementsByClassName('addBtn')[0];
+
+        var requestUrl1 = localStorage.getItem('requestUrl1');
+        var requestUrl2 = localStorage.getItem('requestUrl2');
+        var requestUrl3 = localStorage.getItem('requestUrl3');
+        var count = localStorage.getItem('count');
+        var interval = localStorage.getItem('interval');
+        var index = JSON.parse(localStorage.getItem('index'));
+
+        requestInput1.value = requestUrl1;
+        requestInput2.value = requestUrl2;
+        requestInput3.value = requestUrl3;
+        countInput.value = count;
+        intervalInput.value = interval;
+
+        const showContent = (arr) => {
+            arr.forEach(item => {
+                let count1 = 0
+                let div = document.createElement('div');
+                let span = document.createElement('span');
+                let btn = document.createElement('button');
+                span.innerHTML = `请求:  `
+                btn.innerHTML = `-`
+                let input = document.createElement('input');
+                input.value = item.value
+                input.count = count1;
+
+                input.addEventListener('blur', () => {
+                    localStorage.setItem('addUrlContent', JSON.stringify(changeUrlList(arr, input.count, input.value)))
+                })
+
+                btn.addEventListener('click', () => {
+                    let newArr = []
+                    arr.forEach((item) => {
+                        if (item.index == input.count) {
+                            newArr = arr.slice(input.count + 1)
+                        }
+                    })
+                    localStorage.setItem('addUrlContent', JSON.stringify(newArr))
+                })
+                div.appendChild(span)
+                div.appendChild(input)
+                div.appendChild(btn)
+                content.appendChild(div)
+                count1++;
+            })
+        }
+        showContent(addUrlContent)
+        /**
+         * 方法：返回yyyyMMddhhmmss格式的时间戳
+         */
+        const getDateTime = () => {
+            const now = new Date();
+            const year = now.getFullYear();
+            let month = now.getMonth() + 1;
+            month = month >= 10 ? month : `0${month}`;
+            let date = now.getDate();
+            date = date >= 10 ? date : `0${date}`;
+            let hour = now.getHours();
+            hour = hour >= 10 ? hour : `0${hour}`;
+            let minute = now.getMinutes();
+            minute = minute >= 10 ? minute : `0${minute}`;
+            let second = now.getSeconds();
+            second = second >= 10 ? second : `0${second}`;
+            let milliscond = now.getMilliseconds();
+            return `${year}-${month}-${date}-${hour}-${minute}-${second}-${milliscond}`;
+        };
+
+        var time = `${getDateTime()}`;
+
+        const changeUrlList = (arr, count, value) => {
+            arr.forEach((item) => {
+                if (count == item.index) {
+                    arr[count] = { index: count, value }
+                }
+            })
+            return arr
+        }
+
+        /**
+         * 方法：请求接口
+         */
+        function accessInterface(url, container) {
+            fetch(url, {
+                headers: {
+                    traceId: time
+                }
+            }).then(function (response) {
+                if (response.status !== 200) {
+                    console.log(`存在问题，状态码为：${response.status}`)
+                    return;
+                }
+                //检查响应文本
+                response.json().then(function (data) {
+                    console.log(`成功，返回值为：${data}`)
+                });
+            }).catch(function (err) {
+                console.log(`错误：${err}`)
+            })
+        }
+        /**
+         * 事件：请求接口
+         */
+        startBtn.addEventListener('click', () => {
+            let residueDegree = count
+
+            let timer = setInterval(async () => {
+                await accessInterface(requestUrl1)
+                await accessInterface(requestUrl2)
+                await accessInterface(requestUrl3)
+                residueDegree--
+                if (residueDegree <= 0) {
+                    clearInterval(timer);
+                }
+            }, interval * 1000)
+        })
+
+        /**
+         * 事件： input改变时存到localStorage
+         */
+        requestInput1.addEventListener('blur', () => {
+            localStorage.setItem('requestUrl1', requestInput1.value)
+            requestUrl1 = requestInput1.value
+        })
+        requestInput2.addEventListener('blur', () => {
+            localStorage.setItem('requestUrl2', requestInput2.value)
+            requestUrl2 = requestInput2.value
+        })
+        requestInput3.addEventListener('blur', () => {
+            localStorage.setItem('requestUrl3', requestInput3.value)
+            requestUrl3 = requestInput3.value
+        })
+        countInput.addEventListener('blur', () => {
+            localStorage.setItem('count', countInput.value)
+            count = countInput.value
+        })
+        intervalInput.addEventListener('blur', () => {
+            localStorage.setItem('interval', intervalInput.value)
+            interval = intervalInput.value
+        })
+
+        /**
+         * 添加其他请求
+         */
+        addBtn.addEventListener('click', () => {
+            localStorage.setItem('index', index);
+            let div = document.createElement('div');
+            let span = document.createElement('span');
+            let btn = document.createElement('button');
+            span.innerHTML = `请求:  `
+            btn.innerHTML = `-`
+            let input = document.createElement('input');
+            input.count = index;
+
+            let urlList = JSON.parse(localStorage.getItem('addUrlContent'));
+            urlList.push({ index, value: '' });
+            localStorage.setItem('addUrlContent', JSON.stringify(urlList))
+
+            input.addEventListener('blur', () => {
+                let urlList = JSON.parse(localStorage.getItem('addUrlContent'));
+                localStorage.setItem('addUrlContent', JSON.stringify(changeUrlList(urlList, input.count, input.value)))
+            })
+
+            btn.addEventListener('click', () => {
+                let urlList = JSON.parse(localStorage.getItem('addUrlContent'));
+                let newArr = []
+                urlList.forEach((item) => {
+                    if (item.index == input.count) {
+                        newArr = urlList.slice(input.count + 1)
+                    }
+                })
+                localStorage.setItem('addUrlContent', JSON.stringify(newArr))
+                showContent(newArr)
+            })
+            div.appendChild(span)
+            div.appendChild(input)
+            div.appendChild(btn)
+            content.appendChild(div)
+            index++
+        })
+    </script>
+</body>
+
+</html>
